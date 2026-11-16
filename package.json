@@ -6,7 +6,10 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node --env-file=.env src/index.js",
-    "deploy-commands": "node --env-file=.env scripts/deploy-commands.js"
+    "deploy-commands": "node --env-file=.env scripts/deploy-commands.js",
+    "service:install": "node scripts/install-service.js",
+    "service:restart": "systemctl --user restart points-bot",
+    "service:logs": "journalctl --user -u points-bot -n 50 -f"
   },
   "dependencies": {
     "discord.js": "^14.16.3"

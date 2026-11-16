@@ -4,7 +4,7 @@ A coded Discord bot that replaces the Kite bot `biscoff`. It has one command, **
 
 The bot lives in its **own repo** (`points-bot`), not in this dashboard repo. This file has everything needed to create that repo.
 
-**Contents:** [1. What it does](#1-what-it-does) · [2. Create the repo](#2-create-the-repo) · [3. Code](#3-code) · [4. Discord setup](#4-discord-setup) · [5. Local test](#5-local-test) · [6. Deploy to Oracle Cloud](#6-deploy-to-oracle-cloud-always-free) · [7. Replace Kite](#7-replace-kite-and-rotate-the-key) · [8. API reference](#8-bot-api-reference) · [9. Done when](#9-done-when)
+**Contents:** [1. What it does](#1-what-it-does) · [2. Create the repo](#2-create-the-repo) · [3. Code](#3-code) · [4. Discord setup](#4-discord-setup) · [5. Local test](#5-local-test) · [6. Run on your own machine](#6-run-on-your-own-machine) · [7. Replace Kite](#7-replace-kite-and-rotate-the-key) · [8. API reference](#8-bot-api-reference) · [9. Done when](#9-done-when)
 
 ---
 
@@ -45,8 +45,8 @@ points-bot/
 │  └─ commands/
 │     └─ leaderboard.js     # /leaderboard
 ├─ scripts/
-│  └─ deploy-commands.js    # register the command in your server
-├─ ecosystem.config.cjs     # pm2 (.cjs because the package is ESM)
+│  ├─ deploy-commands.js    # register the command in your server
+│  └─ install-service.js    # run the bot as a systemd user service
 ├─ .env.example
 ├─ .gitignore
 └─ package.json
@@ -64,7 +64,10 @@ points-bot/
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node --env-file=.env src/index.js",
-    "deploy-commands": "node --env-file=.env scripts/deploy-commands.js"
+    "deploy-commands": "node --env-file=.env scripts/deploy-commands.js",
+    "service:install": "node scripts/install-service.js",
+    "service:restart": "systemctl --user restart points-bot",
+    "service:logs": "journalctl --user -u points-bot -n 50 -f"
   },
   "dependencies": {
     "discord.js": "^14.16.3"
@@ -408,7 +411,17 @@ async function shutdown(signal) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-client.login(config.token);
+// discord.js reconnects by itself; these lines just make it visible in the logs.
+client.on(Events.Error, (err) => console.error("[client]", err.message));
+client.on(Events.ShardDisconnect, (event) => console.warn(`Disconnected (code ${event.code})`));
+client.on(Events.ShardResume, () => console.log("Reconnected"));
+
+// A failed login (no network yet, bad token) must end the process so the
+// service restarts it, instead of leaving it running but never connected.
+client.login(config.token).catch((err) => {
+  console.error(`Login failed: ${err.code ?? err.name}: ${err.message}`);
+  process.exit(1);
+});
 ```
 
 ### `scripts/deploy-commands.js`
@@ -424,22 +437,43 @@ await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId),
 console.log(`Registered ${body.length} command(s) in the server.`);
 ```
 
-### `ecosystem.config.cjs`
+### `scripts/install-service.js`
 ```js
-module.exports = {
-  apps: [
-    {
-      name: "points-bot",
-      script: "src/index.js",
-      node_args: "--env-file=.env",
-      autorestart: true,
-      max_restarts: 20,
-      restart_delay: 5000,
-      kill_timeout: 5000,
-      max_memory_restart: "300M",
-    },
-  ],
-};
+import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Installs the bot as a systemd user service on this machine. It uses the
+// node that runs this script, so run it with the Node version you want.
+const NAME = "points-bot";
+const repo = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const unitDir = join(homedir(), ".config", "systemd", "user");
+const unitPath = join(unitDir, `${NAME}.service`);
+
+const unit = `[Unit]
+Description=Points bot (Discord)
+
+[Service]
+WorkingDirectory=${repo}
+ExecStart="${process.execPath}" --env-file=.env src/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
+`;
+
+mkdirSync(unitDir, { recursive: true });
+writeFileSync(unitPath, unit);
+console.log(`Wrote ${unitPath}`);
+
+const systemctl = (...args) => execFileSync("systemctl", ["--user", ...args], { stdio: "inherit" });
+systemctl("daemon-reload");
+systemctl("enable", NAME);
+systemctl("restart", NAME);
+console.log(`Started. Logs: npm run service:logs`);
 ```
 
 ## 4. Discord setup
@@ -473,58 +507,39 @@ Check each of these in Discord:
 - [ ] After 10 minutes the buttons are removed.
 - [ ] Ctrl+C prints "SIGINT: shutting down" and exits.
 
-## 6. Deploy to Oracle Cloud Always Free
+## 6. Run on your own machine
 
-You run these steps yourself.
+The bot runs on your own computer as a **systemd user service**: it starts when you log in, restarts itself if it crashes or can't connect, and logs to the journal. It needs no open ports.
 
-### 6.1 Account and VM
-- **Home region: Singapore (`ap-singapore-1`).** You can't change it later.
-- Create Instance → image **Ubuntu 24.04 (aarch64)**, shape **`VM.Standard.A1.Flex`**, **1 OCPU / 6 GB**, boot volume **50 GB**. Paste your SSH **public** key.
-- Stay within Always Free: A1 is **2 OCPU / 12 GB in total** across all instances, and storage is 200 GB in total. If the trial ends while you're over the A1 limit, **all** A1 instances get disabled.
-- Networking: the default security list allows only **SSH (22)** inbound. Keep it that way. The bot needs no inbound ports.
-- **Idle reclamation:** Oracle can reclaim Always Free instances that stay mostly idle for 7 days, and a command-only bot is almost always idle. **Upgrade to Pay As You Go** (Always Free resources stay free), then go to **Billing → Budgets** and set a **$1 budget alert**.
-
-### 6.2 Server setup
+### 6.1 Install and start
 ```bash
-ssh ubuntu@<vm-ip>
-sudo apt update && sudo apt upgrade -y
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs git unattended-upgrades
-sudo npm i -g pm2
-sudo sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-sudo systemctl restart ssh
-node --version   # v22.x
-```
-
-`build-essential` isn't needed, because the bot has no native modules.
-
-### 6.3 Run
-```bash
-git clone <points-bot repo URL> && cd points-bot
-cp .env.example .env && nano .env      # fill in values
+npm ci
+cp .env.example .env && nano .env      # fill in values (skip if done in section 5)
 chmod 600 .env
-npm ci --omit=dev
 npm run deploy-commands
-pm2 start ecosystem.config.cjs
-pm2 save && pm2 startup                # run the command it prints
-pm2 install pm2-logrotate
-pm2 logs points-bot --lines 20         # "Online as …"
+npm run service:install                # writes ~/.config/systemd/user/points-bot.service and starts it
+npm run service:logs                   # "Online as …"  (Ctrl+C stops following, not the bot)
 ```
 
-Test a reboot: `sudo reboot`, wait a minute, then run `/leaderboard`.
+The service uses the `node` that ran `service:install`. After switching Node versions (nvm), run `npm run service:install` again.
 
-### 6.4 Updates
+### 6.2 Keep it online
+- **Start at boot without logging in:** `sudo loginctl enable-linger $USER`. Without it, the bot starts when you log in and stops when you log out.
+- **The bot is offline whenever the computer sleeps, shuts down or loses internet.** It reconnects by itself when the network comes back. To keep it up, turn off automatic sleep (and lid-close suspend on a laptop) in the system's power settings.
+- Test it: reboot, wait a minute, then run `/leaderboard`.
+
+### 6.3 Updates and control
 ```bash
-cd ~/points-bot && git pull && npm ci --omit=dev && pm2 reload points-bot
+git pull && npm ci && npm run service:restart
 # only if a command's options changed:
 npm run deploy-commands
 ```
 
-Optional later: a GitHub Action that SSHes in and runs the above on every push to `main`.
+Stop: `systemctl --user stop points-bot` · Disable autostart: `systemctl --user disable points-bot` · Status: `systemctl --user status points-bot`
 
 ## 7. Replace Kite and rotate the key
 
-Do this once section 5 passes and the bot is running on the VM.
+Do this once section 5 passes and the bot is running as a service (section 6).
 
 1. Invite the new bot to your **real** server (section 4, step 4). Set `DISCORD_GUILD_ID` to that server, run `npm run deploy-commands`, and set the staff-role permission (section 4, step 6).
 2. Remove `biscoff` (Kite) from the server and turn off its commands in Kite.
@@ -533,7 +548,7 @@ Do this once section 5 passes and the bot is running on the VM.
    openssl rand -hex 32
    ```
    - Vercel: update `BOT_API_KEY` → **redeploy**. The bot returns "API key was refused" until the next step is done.
-   - VM: `nano ~/points-bot/.env` → new `BOT_API_KEY` → `pm2 reload points-bot`.
+   - Bot: `nano .env` → new `BOT_API_KEY` → `npm run service:restart`.
    - Dashboard `.env.local` for local dev.
 4. Delete `BOT_API_KEY` from Kite's **Secrets**.
 5. Once Kite is gone, these can go too: `KITE_BOT_MANUAL.md`, `a.mermaid`, and the `hidden` field in `/api/bot/events` (only BotGhost used it).
@@ -591,7 +606,7 @@ curl -s  -H "Authorization: Bearer $BOT_API_KEY" --get "$B/api/bot/leaderboard" 
 - [ ] `/api/bot/*` is live on Vercel: 401 without the key, 200 with it, `no-store` on every response.
 - [ ] The bot is online in the real server, and only staff can run `/leaderboard`.
 - [ ] Events, standings, weeks, `user:` and paging all work.
-- [ ] The bot is back online within about a minute after `sudo reboot`.
+- [ ] The bot is back online within about a minute after a reboot.
 - [ ] Kite is removed and `BOT_API_KEY` is rotated.
 - [ ] No secrets in either repo: `git log -p | grep -iE "token|api_key"` shows only empty `.env.example` lines.
-- [ ] Oracle is on Pay As You Go with a $1 budget alert, and usage stays within Always Free.
+- [ ] The host machine does not sleep automatically, and linger is on if it should run without a login.

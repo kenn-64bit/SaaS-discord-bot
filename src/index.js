@@ -35,4 +35,14 @@ async function shutdown(signal) {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-client.login(config.token);
+// discord.js reconnects by itself; these lines just make it visible in the logs.
+client.on(Events.Error, (err) => console.error("[client]", err.message));
+client.on(Events.ShardDisconnect, (event) => console.warn(`Disconnected (code ${event.code})`));
+client.on(Events.ShardResume, () => console.log("Reconnected"));
+
+// A failed login (no network yet, bad token) must end the process so the
+// service restarts it, instead of leaving it running but never connected.
+client.login(config.token).catch((err) => {
+  console.error(`Login failed: ${err.code ?? err.name}: ${err.message}`);
+  process.exit(1);
+});
