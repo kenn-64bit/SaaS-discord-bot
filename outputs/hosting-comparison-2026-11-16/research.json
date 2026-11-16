@@ -1,0 +1,109 @@
+{
+  "winner": "Recommended: Sparked Host Advanced, 1 GB, $2/month. Choose monthly billing with no optional add-ons.",
+  "fit": "Fit: this small Node 22 Discord bot needs an ongoing connection and no local database. Capacity is estimated from the code, not a live benchmark.",
+  "scope": "Prices exclude unselected extras. Free, trial and conditional plans have different limits. The reserve is an estimate and does not enforce a spending cap.",
+  "rows": [
+    {
+      "provider": "Sparked Host Advanced",
+      "category": "Paid",
+      "usd": 2,
+      "online": "Yes",
+      "setup": "Easy",
+      "status": "Shortlisted",
+      "limits": "1 GB RAM, 0.75 CPU, 15 GB storage, 1 bot and Node 22. Shared hosting. US, Paris or Sydney only. Backups and code fixes cost extra. Choose monthly billing with no optional add-ons.",
+      "sources": ["https://sparkedhost.com/discord-bot-hosting", "https://help.sparkedhost.com/en/article/how-to-host-a-javascript-discord-bot-1ebwnh2/"]
+    },
+    {
+      "provider": "PebbleHost Bot, 1 GB",
+      "category": "Paid",
+      "usd": 3,
+      "online": "Yes",
+      "setup": "Easy",
+      "limits": "1 GB RAM, Git support and seven-day backups. Verify Node 22 availability in the panel before buying. North America / Europe locations.",
+      "sources": ["https://pebblehost.com/bot-hosting"]
+    },
+    {
+      "provider": "DigitalOcean Basic, 1 GB",
+      "category": "Paid",
+      "usd": 6,
+      "online": "Yes",
+      "setup": "More setup",
+      "limits": "1 CPU, 1 GB RAM, 25 GB disk, 1,000 GiB transfer. Singapore available. Maintain the server yourself. Backups, extra resources and transfer overages cost extra.",
+      "sources": ["https://www.digitalocean.com/pricing/droplets"]
+    },
+    {
+      "provider": "Render Starter worker",
+      "category": "Paid",
+      "usd": 7,
+      "online": "Yes",
+      "setup": "Easy",
+      "limits": "512 MB RAM and 0.5 CPU. Managed background worker with Git deployment. Hobby workspace includes 5 GB outbound, then $0.15/GB. Use a worker, not a free web service.",
+      "sources": ["https://render.com/pricing", "https://render.com/docs/background-workers", "https://render.com/docs/outbound-bandwidth"]
+    },
+    {
+      "provider": "Railway Hobby",
+      "category": "Paid variable",
+      "usd": 5,
+      "online": "Yes, within usage cap",
+      "setup": "Easy",
+      "limits": "$5 monthly minimum includes $5 usage. Additional use is metered. Set a $10 compute hard limit and $8 alert. The bot stops at the limit. Omit paid Agent features. PHP estimate is the minimum.",
+      "sources": ["https://docs.railway.com/pricing/understanding-your-bill", "https://docs.railway.com/pricing/cost-control"]
+    },
+    {
+      "provider": "Northflank Sandbox",
+      "category": "Free, on hold",
+      "usd": 0,
+      "online": "Technically yes",
+      "setup": "Easy",
+      "status": "On hold",
+      "limits": "Two limited free services, no advertised expiry. HOLD: status update on 6 Nov reports investigation of a 30 Oct security incident involving decrypted secrets. Revisit after resolution. Verify card requirements.",
+      "sources": ["https://northflank.com/pricing", "https://status.northflank.com/"]
+    },
+    {
+      "provider": "Existing PC / laptop",
+      "category": "Free hosting",
+      "usd": 0,
+      "online": "Only while awake and online",
+      "setup": "Easy",
+      "limits": "No hosting subscription. Electricity and internet still cost money. Sleep, shutdowns, power cuts or connection loss take the bot offline. Do not buy new hardware just for this option.",
+      "sources": ["Workload and cost assumption based on the supplied bot code. No provider subscription."]
+    },
+    {
+      "provider": "Google Cloud e2-micro",
+      "category": "Conditional free",
+      "usd": 3.65,
+      "online": "Yes, within free limits",
+      "setup": "More setup",
+      "limits": "Compute can be free: one e2-micro, 1 GB RAM, selected US regions, 30 GB standard disk and 1 GB egress. Typical public IPv4 adds about $3.65/month ($0.005/hour × 730 hours). Limits and other resources can add charges.",
+      "sources": ["https://cloud.google.com/free/docs/free-cloud-features#compute", "https://cloud.google.com/vpc/network-pricing#ipaddress"]
+    },
+    {
+      "provider": "AWS Free Plan",
+      "category": "Trial only",
+      "usd": 0,
+      "online": "During eligible trial",
+      "setup": "More setup",
+      "limits": "Eligible new accounts may receive up to $200 credits. Ends after six months or when credits run out. The free plan closes unless upgraded. Continuing on a paid plan costs money.",
+      "sources": ["https://aws.amazon.com/free/"]
+    },
+    {
+      "provider": "Railway Free",
+      "category": "Conditional free",
+      "usd": 0,
+      "online": "Not assured for 24/7",
+      "setup": "Easy",
+      "limits": "$1 monthly credit after the initial $5 / 30-day trial. Usage is metered. The allowance may not cover a continuously running Discord bot. Suitable for testing until measured usage proves otherwise.",
+      "sources": ["https://docs.railway.com/pricing/free-trial"]
+    },
+    {
+      "provider": "Render Free web service",
+      "category": "Unsuitable free",
+      "usd": 0,
+      "online": "No, sleeps after idle",
+      "setup": "Poor fit",
+      "status": "Rejected",
+      "limits": "Sleeps after 15 minutes without qualifying inbound traffic. Discord gateway traffic cannot wake it like a web request. No free background workers. Does not fit this bot's ongoing connection.",
+      "sources": ["https://render.com/docs/free", "https://render.com/docs/background-workers"]
+    }
+  ]
+}
