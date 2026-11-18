@@ -11,13 +11,7 @@ export const data = new SlashCommandBuilder()
   // Hidden from everyone but admins until you allow your staff role in
   // Server Settings → Integrations (see the spec, section 4).
   .setDefaultMemberPermissions(0)
-  .setContexts(InteractionContextType.Guild)
-  .addStringOption((o) =>
-    o.setName("week").setDescription("A week's first day, YYYY-MM-DD").setMinLength(10).setMaxLength(10)
-  )
-  .addStringOption((o) =>
-    o.setName("user").setDescription("A participant's name, exactly as staff typed it").setMaxLength(32)
-  );
+  .setContexts(InteractionContextType.Guild);
 
 function isStaff(member) {
   const roles = member?.roles;
@@ -38,25 +32,17 @@ export async function execute(interaction) {
     return;
   }
 
-  const week = interaction.options.getString("week")?.trim() || null;
-  const name = interaction.options.getString("user")?.trim() || null;
-  if (week && !/^\d{4}-\d{2}-\d{2}$/.test(week)) {
-    await interaction.reply({ content: "`week` must look like 2026-09-21.", flags: MessageFlags.Ephemeral });
-    return;
-  }
-
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   // Everything this reply needs, kept until the session ends.
-  const state = { eventsPage: 1, events: null, event: null, boardPage: null };
+  const state = { eventsPage: 1, events: null, event: null, boardPage: 1, board: null };
 
   const showEvents = async () => {
     state.events = await fetchEvents(state.eventsPage);
     return eventsView(state.events);
   };
   const showBoard = async () => {
-    // boardPage null: the dashboard opens on page 1, or on `name`'s page.
-    const board = await fetchLeaderboard({ event: state.event, week, page: state.boardPage, name });
+    const board = await fetchLeaderboard({ event: state.event, page: state.boardPage });
     state.boardPage = board.page;
     state.board = board;
     return boardView(board);
@@ -96,7 +82,7 @@ export async function execute(interaction) {
           break;
         case "lb:pick":
           state.event = state.events?.events[Number(i.values[0])] ?? null;
-          state.boardPage = null;
+          state.boardPage = 1;
           view = state.event ? await render(showBoard) : await render(showEvents);
           break;
         case "lb:board-prev":

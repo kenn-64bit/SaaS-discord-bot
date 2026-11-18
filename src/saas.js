@@ -37,5 +37,4 @@ async function get(path, params = {}) {
 
 export const fetchEvents = (page) => get("/api/bot/events", { page });
 
-export const fetchLeaderboard = ({ event, week, page, name }) =>
-  get("/api/bot/leaderboard", { event, week, page, name });
+export const fetchLeaderboard = ({ event, page }) => get("/api/bot/leaderboard", { event, page });
