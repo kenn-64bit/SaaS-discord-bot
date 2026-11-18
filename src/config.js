@@ -1,3 +1,10 @@
+// Fallback for direct `node src/index.js` runs outside `npm start` or repo root.
+try {
+  process.loadEnvFile?.(new URL("../.env", import.meta.url));
+} catch (err) {
+  if (err?.code !== "ENOENT") throw err;
+}
+
 const REQUIRED = [
   "DISCORD_TOKEN",
   "DISCORD_CLIENT_ID",
